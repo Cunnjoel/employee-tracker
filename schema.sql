@@ -3,15 +3,10 @@ CREATE database employeeDB;
 
 USE employeeDB;
 
-CREATE TABLE employee (
-  id INT NOT NULL,
-  first_name VARCHAR(30) NULL,
-  last_name VARCHAR(30) NULL,
-  role_id INT NULL,
-  manager_id INT NULL,
-  FOREIGN KEY (role_id),
-  FOREIGN KEY INT (manager_id),
-  PRIMARY KEY (id) 
+CREATE TABLE department (
+    id INT NOt NULL,
+    name VARCHAR(30) NULL,
+    PRIMARY KEY (id)
 );
 
 CREATE TABLE role (
@@ -19,14 +14,29 @@ CREATE TABLE role (
   title VARCHAR(30) NULL,
   salary DECIMAL (10,2) NULL,
   department_id INT NULL,
+  PRIMARY KEY (id),
+  INDEX (department_id),
   FOREIGN KEY (department_id)
+    REFERENCES department(id)
+    ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
-CREATE TABLE department (
-    id INT NOt NULL,
-    name VARCHAR(30) NULL
-)
-
+CREATE TABLE employee (
+  id INT NOT NULL,
+  first_name VARCHAR(30) NULL,
+  last_name VARCHAR(30) NULL,
+  role_id INT NULL,
+  manager_id INT NULL,
+  INDEX (role_id),
+  FOREIGN KEY (role_id)
+    REFERENCES role(id)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  INDEX (manager_id),
+  FOREIGN KEY (manager_id)
+    REFERENCES employee(id)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  PRIMARY KEY (id) 
+);
 SELECT * FROM employee;
 select * from role;
-select * from department:
+select * from department;
