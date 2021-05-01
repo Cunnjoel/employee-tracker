@@ -53,7 +53,10 @@ const start = () => {
 // function to handle viewing employees
 const viewEmployee = () => {
     console.log('Selecting all employee...\n');
-    connection.query('SELECT * FROM employee', (err, res) => {
+    connection.query(`SELECT first_name, last_name, role.title, department.name
+        FROM employee
+        inner join role ON employee.id = role.id
+        inner join department ON role.id = department.id`, (err, res) => {
         if (err) throw err;
         // Log all results of the SELECT statement
         console.log(res);
@@ -63,7 +66,7 @@ const viewEmployee = () => {
 
 const viewEmployeeDepartment = () => {
     console.log('Selecting employee by department...\n');
-    connection.query('SELECT id From department', (err, res) => {
+    connection.query('SELECT name From department', (err, res) => {
         if (err) throw err;
         console.log(res);
         connection.end();
@@ -118,23 +121,29 @@ const addEmployee = () => {
         ])
         .then((answer) => {
             // when finished prompting, insert a new employee into the db with that info
-            connection.query(
-                'INSERT INTO employee SET ?',
+            const query = connection.query(
+                `INSERT INTO employee SET ?
+                SELECT first_name, last_name, manager_id, role.title, role.salary, department.name
+                FROM employee
+                inner join role ON employee.id = role.id
+                inner join department ON role.id = department.id`
+                ,
                 {
                     first_name: answer.firstName,
                     last_name: answer.lastName,
+                    manager_id: answer.manager,
                     title: answer.title,
                     salary: answer.salary,
-                    name: answer.name,
-                    manager_id: answer.manager
+                    name: answer.name
                 },
-                (err) => {
+                (err, res) => {
                     if (err) throw err;
-                    console.log('Employee was added successfully!');
+                    console.log(`${res.affrectedRows} was added successfully!`);
                     // re-prompt the user for if they want to bid or post
-                    start();
-                }
+                    connection.end();
+                } 
             );
+            console.log(query.sql);
         });
 };
 
