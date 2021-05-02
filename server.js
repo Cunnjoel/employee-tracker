@@ -31,22 +31,31 @@ const start = () => {
         })
         .then((answer) => {
             // based on their answer, calls required function
-            if (answer.begin === 'View All Employees') {
-                viewEmployee();
-            } else if (answer.begin === 'View All Employees By Department') {
-                viewEmployeeDepartment();
-            } else if (answer.begin === 'View All Employees By Manager') {
-                viewEmployeeManager();
-            } else if (answer.begin === 'Add Employee') {
-                addEmployee();
-            } else if (answer.begin === 'Remove Employee') {
-                removeEmployee();
-            } else if (answer.begin === 'Update Employee Role') {
-                updateRole();
-            } else if (answer.begin === 'Update Employee Manager') {
-                updateManager();
-            } else {
-                connection.end();
+            switch (answer.begin) {
+                case 'View All Employees':
+                    viewEmployee();
+                    break;
+                case 'View All Employees By Department':
+                    viewEmployeeDepartment();
+                    break;
+                case 'View All Employees By Manager':
+                    viewEmployeeManager();
+                    break;
+                case 'Add Employee':
+                    addEmployee();
+                    break;
+                case 'Remove Employee':
+                    removeEmployee();
+                    break;
+                case 'Update Employee Role':
+                    updateRole();
+                    break;
+                case 'Update Employee Manager':
+                    updateManager();
+                    break;
+                case 'Exit':
+                    connection.end();
+                    break;
             }
         })
 };
@@ -60,18 +69,44 @@ const viewEmployee = () => {
         if (err) throw err;
         // Log all results of the SELECT statement
         console.log(res);
-        connection.end();
-    }); return start();
-};
+        console.table(('All Employees'), res)
+        start();
+    })
+}
 
 const viewEmployeeDepartment = () => {
+    const departList = 'SELECT * FROM department';
     console.log('Selecting employee by department...\n');
-    connection.query('SELECT name From department', (err, res) => {
+    connection.query(departList, (err, res) => {
         if (err) throw err;
-        console.log(res);
-        connection.end();
-    }); return start();
-};
+
+        inquirer.prompt([
+            {
+                name: 'departChoice',
+                type: 'list',
+                choices: function () {
+                    let choiceArray = res.map(choice => choice.department_name)
+                    return choiceArray;
+                },
+                message: 'Select a department to view: '
+            }
+        ]).then((answer) => {
+            let chosenDepart;
+            for (let i = 0; i < res.length; i++) {
+                if (res[i].department_name === answer.departChoice) {
+                    chosenDepart = res[i];
+                }
+            }
+            connection.query('SELECT e.id, e.first_name AS "First Name", e.last_name AS "Last Name", r.title AS "Title", d.department_name AS "Department", r.salary AS "Salary" FROM employees e INNER JOIN roles r ON r.id = e.role_id INNER JOIN department d ON d.id = r.department_id WHERE ?;',
+            { department_name: chosenDepart.department_name}, (err, res) => {
+                if (err) throw err;
+                console.log(' ');
+                console.table((`All Employees by Department: ${chosenDepart.department_name}`), res)
+                start();
+            })
+        })
+    })
+}
 
 const viewEmployeeManager = () => {
     console.log('Select employee by manager...\n');
@@ -112,64 +147,85 @@ const addEmployee = () => {
                 type: 'input',
                 message: 'What department will the employee be working?',
             },
-            {
-                name: 'manager',
-                type: 'input',
-                message: 'Who is the manager of the employee?',
-            },
+            // {
+            //     name: 'manager',
+            //     type: 'input',
+            //     message: 'Who is the manager of the employee?',
+            // },
 
         ])
-        .then((answer) => {
+        .then(async (answer) => {
             // when finished prompting, insert a new employee into the db with that info
-            const query = connection.query(
-                `INSERT INTO employee SET ?
-                SELECT first_name, last_name, manager_id, role.title, role.salary, department.name
-                FROM employee
-                inner join role ON employee.id = role.id
-                inner join department ON role.id = department.id`
-                ,
+            const query = await connection.query(
+                'INSERT INTO employee SET ?',
                 {
                     first_name: answer.firstName,
                     last_name: answer.lastName,
-                    manager_id: answer.manager,
+                    // manager_id: answer.manager,
+                }
+            )
+            connection.query(
+                'INSERT INTO role SET ?',
+                {
                     title: answer.title,
-                    salary: answer.salary,
-                    name: answer.name
-                },
+                    salary: answer.salary
+                }
+            ),
+                connection.query(
+                    'INSERT INTO department SET ?',
+                    {
+                        name: answer.name
+                    }
+                ),
                 (err, res) => {
                     if (err) throw err;
                     console.log(`${res.affrectedRows} was added successfully!`);
                     // re-prompt the user for if they want to bid or post
                     connection.end();
-                } 
-            );
+                }
             console.log(query.sql);
         });
+    return start();
 };
 
 const removeEmployee = () => {
-    console.log('Remove employee by employee_id...\n');
-    connection.query('SELECT From employee', (err, res) => {
-        if (err) throw err;
-        console.log(res);
-        connection.end();
-    }); return start();
-}
+    inquirer
+        .prompt([
+            {
+                name: 'delete',
+                type: 'input',
+                message: 'Please enter employee name to remove.',
+            },
+        ])
+        .then((answer) => {
+            connection.query(
+                'ON DELETE CASCADE From employee WHERE ?',
+                {
+                    first_name: answer.firstName
+                }
+            );
+            (err, res) => {
+                if (err) throw err;
+                console.log(`${res.affectedRows} employee removed.\n`);
+                connection.end();
+            };
+        });
 
-const updateRole = () => {
-    console.log('Update employee role.../n')
-    connection.query('SELECT FROM', (err, res) => {
-        if (err) throw err;
-        console.log(res);
-        connection.end();
-    }); return start();
-}
+    const updateRole = () => {
+        console.log('Update employee role.../n')
+        connection.query('SELECT FROM', (err, res) => {
+            if (err) throw err;
+            console.log(res);
+            connection.end();
+        }); return start();
+    }
 
-const updateManager = () => {
-    console.log('Update employee manager.../n')
-    connection.query('SELECT FROM', (err, res) => {
-        if (err) throw err;
-        console.log(res);
-        connection.end();
-    }); return start();
+    const updateManager = () => {
+        console.log('Update employee manager.../n')
+        connection.query('SELECT FROM', (err, res) => {
+            if (err) throw err;
+            console.log(res);
+            connection.end();
+        }); return start();
+    }
 }
