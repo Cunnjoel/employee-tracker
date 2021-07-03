@@ -27,7 +27,7 @@ const start = () => {
             name: 'begin',
             type: 'list',
             message: 'Would you like to do?',
-            choices: ['View All Employees', 'View All Employees By Department', 'View All Employees By Role','Add Department', 'Add Role', 'Add Employee', 'Remove Employee', 'Update Employee Role', 'Exit'],
+            choices: ['View All Employees', 'View All Employees By Department', 'View All Employees By Role', 'Add Employee', 'Add Department', 'Add Role', 'Update Employee Role', 'List of Employees by Department', 'Exit'],
         })
         .then((answer) => {
             // based on their answer, calls required function
@@ -36,19 +36,25 @@ const start = () => {
                     viewEmployee();
                     break;
                 case 'View All Employees By Department':
-                    viewEmployeeDepartment();
+                    viewDepartment();
                     break;
                 case 'View All Employees By Role':
-                    viewEmployeeRole();
+                    viewRole();
                     break;
                 case 'Add Employee':
                     addEmployee();
                     break;
-                case 'Remove Employee':
-                    removeEmployee();
+                case 'Add Department':
+                    addDepartment();
+                    break;
+                case 'Add Role':
+                    addRole();
                     break;
                 case 'Update Employee Role':
                     updateRole();
+                    break;
+                case 'List of Employees by Department':
+                    employeeByDepartment();
                     break;
                 case 'Exit':
                     connection.end();
@@ -59,59 +65,82 @@ const start = () => {
 // function to handle viewing employees
 const viewEmployee = () => {
     console.log('Selecting all employee...\n');
-    connection.query(`SELECT first_name, last_name, role.title, department.name
-        FROM employee
-        inner join role ON employee.id = role.id
-        inner join department ON role.id = department.id`, (err, res) => {
+    connection.query(`SELECT first_name, last_name
+        FROM employee`, (err, res) => {
         if (err) throw err;
         // Log all results of the SELECT statement
         console.log(res);
-        console.table( res)
+        console.table(('All Employees'), res)
         start();
     })
 }
-
-const viewEmployeeDepartment = () => {
-    const departList = 'SELECT * FROM department';
-    console.log('Selecting employee by department...\n');
-    connection.query(departList, (err, res) => {
+// function to handle viewing departments
+const viewDepartment = () => {
+    console.log('Select all departments...\n');
+    // const myQuery = `SELECT department.name
+    // // FROM employee
+    // // inner join role ON employee.id = role.id
+    // // inner join department ON role.id = department.id`
+    const myQuery = `SELECT department.name FROM department`
+    connection.query(myQuery, (err, res) => {
         if (err) throw err;
+        console.log(res);
+        console.table(res)
+        start();
 
-        inquirer.prompt([
-            {
-                name: 'departChoice',
-                type: 'list',
-                choices: function () {
-                    let choiceArray = res.map(choice => choice.department_name)
-                    return choiceArray;
-                },
-                message: 'Select a department to view: '
-            }
-        ]).then((answer) => {
-            let chosenDepart;
-            for (let i = 0; i < res.length; i++) {
-                if (res[i].department_name === answer.departChoice) {
-                    chosenDepart = res[i];
-                }
-            }
-            connection.query('SELECT e.id, e.first_name AS "First Name", e.last_name AS "Last Name", r.title AS "Title", d.department_name AS "Department", r.salary AS "Salary" FROM employees e INNER JOIN roles r ON r.id = e.role_id INNER JOIN department d ON d.id = r.department_id WHERE ?;',
-                { department_name: chosenDepart.department_name }, (err, res) => {
-                    if (err) throw err;
-                    console.log(' ');
-                    console.table((`All Employees by Department: ${chosenDepart.department_name}`), res)
-                    start();
-                })
-        })
+
     })
 }
 
-const viewEmployeeRole = () => {
+// view employees from a department
+const employeeByDepartment = () => {
+    inquirer
+        .prompt({
+            name: 'department',
+            type: 'list',
+            message: 'Which department would you like to view?',
+            choices: ['Head Programing Engineer','Programing Engineer', 'Head Accoutant']
+        }).then(answer => {
+            // const firstQuery = `SELECT * FROM department WHERE name = "${answer.department}"`;
+
+            // connection.query(firstQuery, (err, res) => {
+
+            //     const secondQuery = `SELECT * FROM role WHERE department_id = ${res[0].id}`;
+
+            //     connection.query(secondQuery, (err, res) => {
+
+            //         if (err) throw err;
+            //         console.log(res);
+            //         console.table(res)
+            //         start();
+        
+            //     })
+            // })
+
+            const oneQuery =`SELECT * FROM employee INNER JOIN (SELECT * FROM (SELECT department.name AS department_name, role.id AS role_id, role.title FROM department INNER JOIN role WHERE department.id = role.department_id) AS roleDept WHERE roleDept.department_name = "${answer.department}") AS myTable WHERE myTable.role_id = employee.role_id`;
+
+                connection.query(oneQuery, (err, res) => {
+
+                    if (err) throw err;
+                    console.log(res);
+                    console.table(res)
+                    start();
+        
+                })
+        })
+    }
+
+// function to handle viewing roles
+const viewRole = () => {
     console.log('Select employee by role...\n');
-    connection.query('SELECT manager_id From employee', (err, res) => {
+    connection.query(`SELECT role.title
+    FROM employee
+    inner join role ON employee.id = role.id`, (err, res) => {
         if (err) throw err;
         console.log(res);
-        connection.end();
-    }); return start();
+        console.table((`All Roles`), res)
+        start();
+    });
 };
 
 // function to handle posting new employee info
@@ -129,96 +158,57 @@ const addEmployee = () => {
                 type: 'input',
                 message: 'What is the last name of the employee?',
             },
-            {
-                name: 'title',
-                type: 'input',
-                message: 'What is the title of the employee?',
-            },
-            {
-                name: 'salary',
-                type: 'input',
-                message: 'What is the salary of the employee?',
-            },
-            {
-                name: 'name',
-                type: 'input',
-                message: 'What department will the employee be working?',
-            },
-            // {
-            //     name: 'manager',
-            //     type: 'input',
-            //     message: 'Who is the manager of the employee?',
-            // },
-
         ])
-        .then(async (answer) => {
+        .then((answer) => {
             // when finished prompting, insert a new employee into the db with that info
-            const query = await connection.query(
-                'INSERT INTO employee SET ?',
-                {
-                    first_name: answer.firstName,
-                    last_name: answer.lastName,
-                    // manager_id: answer.manager,
-                }
-            )
             connection.query(
-                'INSERT INTO role SET ?',
-                {
-                    title: answer.title,
-                    salary: answer.salary
-                }
-            ),
-                connection.query(
-                    'INSERT INTO department SET ?',
-                    {
-                        name: answer.name
-                    }
-                ),
+                `INSERT INTO employee (first_name, last_name) VALUE (?, ?)`,
+                [answer.firstName, answer.lastName],
                 (err, res) => {
                     if (err) throw err;
-                    console.log(`${res.affrectedRows} was added successfully!`);
-                    // re-prompt the user for if they want to bid or post
-                    connection.end();
-                }
-            console.log(query.sql);
+                    console.table(res);
+                    start();
+                });
         });
-    return start();
-};
+}
 
-const removeEmployee = () => {
+const addDepartment = () => {
     inquirer
         .prompt([
             {
-                name: 'delete',
+                name: 'addDepart',
                 type: 'input',
-                message: 'Please enter employee name to remove.',
+                message: 'Please enter name of new department.',
             },
         ])
         .then((answer) => {
             connection.query(
-                'ON DELETE CASCADE From employee WHERE ?',
+                `INSERT INTO department (department.name, role_id, department_id)
+                SELECT role.id 
+                FROM employee 
+                WHERE first_name = 'Joel' VALUE ?`,
                 {
-                    first_name: answer.firstName
+                    department_name: answer.addDepart
                 }
             );
             (err, res) => {
                 if (err) throw err;
-                console.log(`${res.affectedRows} employee removed.\n`);
+                console.table(res);
                 connection.end();
             };
         });
 
-    const updateRole = () => {
-        console.log('Update employee role.../n')
-        connection.query('SELECT FROM', (err, res) => {
+    const addRole = () => {
+        console.log('Add employee role.../n')
+        connection.query('INSERT INTO role SET ?, role.title ', (err, res) => {
             if (err) throw err;
             console.log(res);
             connection.end();
         }); return start();
     }
 
-    const updateManager = () => {
-        console.log('Update employee manager.../n')
+    const updateRole = () => {
+        console.log('Update employee role.../n')
         connection.query('SELECT FROM', (err, res) => {
             if (err) throw err;
             console.log(res);
