@@ -27,7 +27,7 @@ const start = () => {
             name: 'begin',
             type: 'list',
             message: 'Would you like to do?',
-            choices: ['View All Employees', 'View All Employees By Department', 'View All Employees By Manager', 'Add Employee', 'Remove Employee', 'Update Employee Role', 'Update Employee Manager', 'Exit'],
+            choices: ['View All Employees', 'View All Employees By Department', 'View All Employees By Role','Add Department', 'Add Role', 'Add Employee', 'Remove Employee', 'Update Employee Role', 'Exit'],
         })
         .then((answer) => {
             // based on their answer, calls required function
@@ -38,8 +38,8 @@ const start = () => {
                 case 'View All Employees By Department':
                     viewEmployeeDepartment();
                     break;
-                case 'View All Employees By Manager':
-                    viewEmployeeManager();
+                case 'View All Employees By Role':
+                    viewEmployeeRole();
                     break;
                 case 'Add Employee':
                     addEmployee();
@@ -49,9 +49,6 @@ const start = () => {
                     break;
                 case 'Update Employee Role':
                     updateRole();
-                    break;
-                case 'Update Employee Manager':
-                    updateManager();
                     break;
                 case 'Exit':
                     connection.end();
@@ -69,7 +66,7 @@ const viewEmployee = () => {
         if (err) throw err;
         // Log all results of the SELECT statement
         console.log(res);
-        console.table(('All Employees'), res)
+        console.table( res)
         start();
     })
 }
@@ -98,18 +95,18 @@ const viewEmployeeDepartment = () => {
                 }
             }
             connection.query('SELECT e.id, e.first_name AS "First Name", e.last_name AS "Last Name", r.title AS "Title", d.department_name AS "Department", r.salary AS "Salary" FROM employees e INNER JOIN roles r ON r.id = e.role_id INNER JOIN department d ON d.id = r.department_id WHERE ?;',
-            { department_name: chosenDepart.department_name}, (err, res) => {
-                if (err) throw err;
-                console.log(' ');
-                console.table((`All Employees by Department: ${chosenDepart.department_name}`), res)
-                start();
-            })
+                { department_name: chosenDepart.department_name }, (err, res) => {
+                    if (err) throw err;
+                    console.log(' ');
+                    console.table((`All Employees by Department: ${chosenDepart.department_name}`), res)
+                    start();
+                })
         })
     })
 }
 
-const viewEmployeeManager = () => {
-    console.log('Select employee by manager...\n');
+const viewEmployeeRole = () => {
+    console.log('Select employee by role...\n');
     connection.query('SELECT manager_id From employee', (err, res) => {
         if (err) throw err;
         console.log(res);
