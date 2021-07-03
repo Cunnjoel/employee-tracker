@@ -99,7 +99,7 @@ const employeeByDepartment = () => {
             name: 'department',
             type: 'list',
             message: 'Which department would you like to view?',
-            choices: ['Head Programing Engineer','Programing Engineer', 'Head Accoutant']
+            choices: ['Head Programing Engineer', 'Programing Engineer', 'Head Accoutant']
         }).then(answer => {
             // const firstQuery = `SELECT * FROM department WHERE name = "${answer.department}"`;
 
@@ -113,22 +113,22 @@ const employeeByDepartment = () => {
             //         console.log(res);
             //         console.table(res)
             //         start();
-        
+
             //     })
             // })
 
-            const oneQuery =`SELECT * FROM employee INNER JOIN (SELECT * FROM (SELECT department.name AS department_name, role.id AS role_id, role.title FROM department INNER JOIN role WHERE department.id = role.department_id) AS roleDept WHERE roleDept.department_name = "${answer.department}") AS myTable WHERE myTable.role_id = employee.role_id`;
+            const oneQuery = `SELECT * FROM employee INNER JOIN (SELECT * FROM (SELECT department.name AS department_name, role.id AS role_id, role.title FROM department INNER JOIN role WHERE department.id = role.department_id) AS roleDept WHERE roleDept.department_name = "${answer.department}") AS myTable WHERE myTable.role_id = employee.role_id`;
 
-                connection.query(oneQuery, (err, res) => {
+            connection.query(oneQuery, (err, res) => {
 
-                    if (err) throw err;
-                    console.log(res);
-                    console.table(res)
-                    start();
-        
-                })
+                if (err) throw err;
+                console.log(res);
+                console.table(res)
+                start();
+
+            })
         })
-    }
+}
 
 // function to handle viewing roles
 const viewRole = () => {
@@ -138,7 +138,7 @@ const viewRole = () => {
     inner join role ON employee.id = role.id`, (err, res) => {
         if (err) throw err;
         console.log(res);
-        console.table((`All Roles`), res)
+        console.table(res)
         start();
     });
 };
@@ -178,7 +178,7 @@ const addDepartment = () => {
             {
                 name: 'addDepart',
                 type: 'input',
-                message: 'Please enter name of new department.',
+                message: 'Please enter name of new department.'
             },
         ])
         .then((answer) => {
@@ -186,7 +186,7 @@ const addDepartment = () => {
                 `INSERT INTO department (department.name, role_id, department_id)
                 SELECT role.id 
                 FROM employee 
-                WHERE first_name = 'Joel' VALUE ?`,
+                WHERE first_name = ? VALUE ?`,
                 {
                     department_name: answer.addDepart
                 }
@@ -197,22 +197,40 @@ const addDepartment = () => {
                 connection.end();
             };
         });
+}
+const addRole = () => {
+    inquirer
+        .prompt([
+            {
+                name: 'addRole',
+                type: 'input',
+                message: 'Please enter name of new department.'
+            },
+        ])
+        .then((answer) => {
+            connection.query(
+                `INSERT INTO role (role.title, role_id)
+                SELECT role.id 
+                FROM employee 
+                WHERE first_name = ? VALUE ?`,
+                {
+                    role_title: answer.addRole
+                }
+            );
+            (err, res) => {
+                if (err) throw err;
+                console.table(res);
+                connection.end();
+            };
+        });
 
-    const addRole = () => {
-        console.log('Add employee role.../n')
-        connection.query('INSERT INTO role SET ?, role.title ', (err, res) => {
-            if (err) throw err;
-            console.log(res);
-            connection.end();
-        }); return start();
-    }
+}
 
-    const updateRole = () => {
-        console.log('Update employee role.../n')
-        connection.query('SELECT FROM', (err, res) => {
-            if (err) throw err;
-            console.log(res);
-            connection.end();
-        }); return start();
-    }
+const updateRole = () => {
+    console.log('Update employee role.../n')
+    connection.query('SELECT FROM', (err, res) => {
+        if (err) throw err;
+        console.log(res);
+        connection.end();
+    }); return start();
 }
